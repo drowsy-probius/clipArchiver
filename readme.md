@@ -1,4 +1,4 @@
-# Twitch Clip Dumper
+# Twitch Clip Archiver
 
 지정한 스트리머의 모든 클립을 읽어올 수 있습니다.
 

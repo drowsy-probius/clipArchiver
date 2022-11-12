@@ -79,7 +79,7 @@ def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJs
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(
-    prog="TwitchClipsDump",
+    prog="Twitch Clip Archiver",
     description="Read all clips and save to database. Download clips if needed.",
     epilog="It reads `config.ini` first then apply arguments if passed.",
   )
