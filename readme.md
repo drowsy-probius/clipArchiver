@@ -6,6 +6,8 @@
 
 ## 사용법
 
+[트위치 개발자 콘솔](https://dev.twitch.tv/console)의 `응용 프로그램`탭에서 응용 프로그램을 등록 후 클라이언트 ID와 클라이언트 시크릿 값이 필요합니다. 이에 대해서는 자세한 설명을 생략합니다.
+
 ### 의존성 설치
 `python3 -m pip install -r requirements.txt`
 
