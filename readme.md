@@ -10,7 +10,7 @@
 `python3 -m pip install -r requirements.txt`
 
 ### 설정 파일 입력 (옵션)
-`config.ini` 파일에 적절한 값을 입력합니다. 아니면 실행 시 인자로 줄 수도 있고 `config.ini`의 값보다 인자 값을 우선합니다.
+`config.ini` 파일에 적절한 값을 입력합니다. 아니면 실행 시 인자로 줄 수도 있고 그 경우에 `config.ini`의 값보다 인자 값을 우선합니다.
 
 - `clientId` twitch api client id
 - `clientSecret` twitch api client secret
