@@ -35,7 +35,7 @@ def truncate_string_in_byte_size(unicode_string, size=180):
   return unicode_string
 
 class TwitchApi:
-  def __init__(self, databasePath: str, clientId: str, clientSecret: str, streamerId: str, readSize: str, proxy: str):
+  def __init__(self, databasePath: str, clientId: str, clientSecret: str, streamerId: str, readSize: int, proxy: str):
     self.database = ClipDatabase(databasePath)
     self.session = requests.Session()
     self.authHeader = {}
@@ -43,7 +43,7 @@ class TwitchApi:
     self.clientId = clientId
     self.clientSecret = clientSecret
     self.proxy = proxy
-    self.readSize = readSize
+    self.readSize = readSize if readSize else 40
     
     self.proxies = {
       "http": proxy,
@@ -205,7 +205,8 @@ class TwitchApi:
             after = pagination['cursor']
           except KeyboardInterrupt:
             raise KeyboardInterrupt
-          except:
+          except Exception as e:
+            print(f"\n[{datetime.now()}] {tries+1}-th try {e}")
             tries += 1
         if tries >= 3:
           print(f"\n[{datetime.now()}] Failed while requesting ({after}, {started_at}, {ended_at}) => {clips}", flush=True)

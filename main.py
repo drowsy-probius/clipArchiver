@@ -34,6 +34,8 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
   readSize = int(argReadSize) if argReadSize != None else config.get('readSize', 40)
   proxy = argProxy if argProxy != None else config.get('proxy', None)
   
+  if readSize == None:
+    readSize = 40
   if clientId == None:
     raise Exception("client_id is needed")
   if clientSecret == None:
