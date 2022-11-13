@@ -101,10 +101,10 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
     self.connection.commit()
     cursor.close()
 
-  def iterate_rows(self, loginName: str, callback, concurrency=6):
+  def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int):
     cursor = self.connection.cursor()
-    row_length = cursor.execute(f"SELECT count(*) from clips_{loginName}").fetchone()[0]
-    cursor.execute(f"SELECT * FROM clips_{loginName}")
+    row_length = cursor.execute(f"SELECT count(*) FROM clips_{loginName} WHERE view_count >= ?", (minView, )).fetchone()[0]
+    cursor.execute(f"SELECT * FROM clips_{loginName} WHERE view_count >= ?", (minView, ))
 
     with tqdm(total=row_length, unit='clips') as progress_bar:
       with ThreadPoolExecutor(max_workers=concurrency) as executor:

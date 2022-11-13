@@ -14,7 +14,7 @@ twitchApi: TwitchApi = None
 config = {}
 
 if os.path.exists(CONFIGFILE):
-  print(f"local config file exits")
+  print(f"local config file exists")
   print(f"loading configs from {CONFIGFILE}")
   try:
     config = configparser.ConfigParser()
@@ -31,17 +31,36 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
   clientId = argClientId if argClientId != None else config.get('clientId', None)
   clientSecret = argClientSecret if argClientSecret != None else config.get('clientSecret', None)
   streamerId = argStreamer if argStreamer != None else config.get('streamerId', None)
-  readSize = int(argReadSize) if argReadSize != None else config.get('readSize', 40)
+  readSize = argReadSize if argReadSize != None else config.get('readSize', 40)
   proxy = argProxy if argProxy != None else config.get('proxy', None)
   
-  if readSize == None:
+  try:
+    readSize = int(readSize)
+    if readSize < 0:
+      readSize = 40
+    elif readSize > 100:
+      readSize = 100
+  except:
     readSize = 40
-  if clientId == None:
+  if len(databaseFile) == 0:
+    raise Exception("database file path is not valid")
+  if len(proxy) == 0:
+    proxy = None
+  if clientId == None or len(clientId) == 0:
     raise Exception("client_id is needed")
-  if clientSecret == None:
+  if clientSecret == None or len(clientSecret) == 0:
     raise Exception("clientSecret is needed")
-  if streamerId == None:
+  if streamerId == None or len(streamerId) == 0:
     raise Exception("streamer_id is needed")
+  print(f'''
+    Init parameters
+      databaseFile  {databaseFile}
+      clientId      HIDDEN
+      clientSecret  HIDDEN
+      streamerId    {streamerId}
+      readSize      {readSize}
+      proxy         {'HIDDEN' if proxy != None else 'NOT SET'}
+  ''')
   twitchApi = TwitchApi(databaseFile, clientId, clientSecret, streamerId, readSize, proxy)
 
 
@@ -80,7 +99,15 @@ def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJs
       minView = 0
     if minView < 0:
       minView = 0
-      
+    
+    print(f'''
+    Download parameters
+      downloadDirectory   {downloadDirectory}
+      saveJson            {saveJson}
+      forceDownload       {forceDownload}
+      minView             {minView}
+      concurrency         {concurrency}
+    ''')
     twitchApi.download_clips_from_database(downloadDirectory, concurrency, saveJson, forceDownload, minView)
   except Exception as e:
     traceback.print_exception(e)

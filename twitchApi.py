@@ -43,7 +43,7 @@ class TwitchApi:
     self.clientId = clientId
     self.clientSecret = clientSecret
     self.proxy = proxy
-    self.readSize = readSize if readSize else 40
+    self.readSize = readSize
     
     self.proxies = {
       "http": proxy,
@@ -297,12 +297,10 @@ class TwitchApi:
   
   def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int):
     def clip_handler(clip):
-      if clip['view_count'] < minView:
-        return clip
       if forceDownload == False and clip['download_status'] == 1:
         return clip
       return self.download_clip(clip, downloadDirectory, saveJson)
-    self.database.iterate_rows(self.loginName, clip_handler, concurrency)
+    self.database.iterate_rows(self.loginName, clip_handler, concurrency, minView)
     
     
   
