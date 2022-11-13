@@ -54,17 +54,18 @@ def make_database():
     sys.exit(0)
 
 
-def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJson, argForceDownload):
+def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJson, argForceDownload, argMinView):
   global config, twitchApi
   try:
     downloadDirectory = argDownloadDirectory if argDownloadDirectory != None else config.get('downloadDirectory', None)
     saveJson = argSaveJson if argSaveJson != None else config.get('saveJson', False)
     forceDownload = argForceDownload if argForceDownload != None else config.get('forceDownload', False)
+    minView = argMinView if argMinView != None else config.get('minView', False)
+    concurrency = argConcurrency if argConcurrency != None else config.get('concurrency', 6)
     
     if downloadDirectory == None:
       raise Exception(f"download directory is not specified!")
     
-    concurrency = argConcurrency if argConcurrency != None else config.get('concurrency', 6)
     try:
       concurrency = int(argConcurrency)
     except:
@@ -72,8 +73,15 @@ def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJs
     
     if concurrency < 0:
       concurrency = 1
-    
-    twitchApi.download_clips_from_database(downloadDirectory, concurrency, saveJson, forceDownload)
+      
+    try:
+      minView = int(minView)
+    except:
+      minView = 0
+    if minView < 0:
+      minView = 0
+      
+    twitchApi.download_clips_from_database(downloadDirectory, concurrency, saveJson, forceDownload, minView)
   except Exception as e:
     traceback.print_exception(e)
     sys.exit(0)
@@ -97,6 +105,7 @@ if __name__ == "__main__":
   parser.add_argument("-b", "--database", help="database path")
   parser.add_argument("-s", "--streamer", help="streamer loginName(not nickname!!!) or broadcaster_id(number string)")
   parser.add_argument("-o", "--download-directory", help="path to save clips")
+  parser.add_argument("-m", "--min-view", help="minimum view count to download")
   parser.add_argument("--read-size", help="the number of clips fetch from twitch server. larger is inaccurate")
   parser.add_argument("--concurrency", help="download concurrency (default=6)")
   parser.add_argument("--proxy", help="proxy url")
@@ -113,6 +122,7 @@ if __name__ == "__main__":
       args.download_directory, 
       args.concurrency,
       (args.save_json == True),
-      (args.force_download == True)
+      (args.force_download == True),
+      args.min_view
     )
   

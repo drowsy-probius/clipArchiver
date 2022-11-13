@@ -295,8 +295,10 @@ class TwitchApi:
 
   
   
-  def download_clips_from_database(self, downloadDirectory, concurrency, saveJson, forceDownload):
+  def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int):
     def clip_handler(clip):
+      if clip['view_count'] < minView:
+        return clip
       if forceDownload == False and clip['download_status'] == 1:
         return clip
       return self.download_clip(clip, downloadDirectory, saveJson)
