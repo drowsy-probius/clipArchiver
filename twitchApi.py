@@ -3,7 +3,7 @@ import sys
 import requests 
 import json
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 import subprocess
 
 from tqdm import tqdm
@@ -218,7 +218,7 @@ class TwitchApi:
     """ 
     '2017-12-29T13:12:23Z' -> '2017-12-29T13:12:23'
     """
-    created_at = datetime.fromisoformat(clip['created_at'][:-1]).astimezone(timezone.utc)
+    created_at = datetime.fromisoformat(clip['created_at'][:-1]) + timedelta(hours=9)
     year = str(created_at.year).zfill(4)
     month = str(created_at.month).zfill(2)
     day = str(created_at.day).zfill(2)
