@@ -106,7 +106,7 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
     row_length = cursor.execute(f"SELECT count(*) from clips_{loginName}").fetchone()[0]
     cursor.execute(f"SELECT * FROM clips_{loginName}")
 
-    with tqdm(total=row_length) as progress_bar:
+    with tqdm(total=row_length, unit='clips') as progress_bar:
       with ThreadPoolExecutor(max_workers=concurrency) as executor:
         try:
           futures = [executor.submit(callback, self.map_row_with_schema(row)) for row in cursor]

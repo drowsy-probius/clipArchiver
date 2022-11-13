@@ -185,7 +185,7 @@ class TwitchApi:
         yield (started_at, ended_at)
     
     num_of_clips = 0
-    with tqdm() as progress_bar:
+    with tqdm(unit='clips') as progress_bar:
       for (started_at, ended_at) in date_range_generator():
         progress_bar.set_description(f"read clips in range {started_at} ~ {ended_at}")
         clips = {}
@@ -214,7 +214,7 @@ class TwitchApi:
     print(f"total clips with duplicated: {num_of_clips}")
 
 
-  def download_clip(self, clip, downloadDirectory, saveJson):
+  def download_clip(self, clip: dict, downloadDirectory: str, saveJson: bool) -> dict:
     """ 
     '2017-12-29T13:12:23Z' -> '2017-12-29T13:12:23'
 
@@ -229,13 +229,14 @@ class TwitchApi:
     minute = str(created_at.minute).zfill(2)
     second = str(created_at.second).zfill(2)
     
+    broadcasterDirectory = f"{clip['broadcaster_name']} ({self.loginName})"
     clip_title = truncate_string_in_byte_size(clip['title'].strip())
     clip_id = clip["id"][:10]
     title = f"[{year}{month}{day}-{hour}{minute}{second}] {clip_title} ({clip_id})"
     title = replace_invalid_filename(title)
     fileDirectory = filename = os.path.join(
       downloadDirectory, 
-      clip['broadcaster_name'], 
+      broadcasterDirectory, 
       year,
       f"{year}-{month}",
       f"{year}-{month}-{day}",
@@ -266,23 +267,27 @@ class TwitchApi:
       if return_code == 0:
         break
 
-      print(f"\n[{datetime.now()}][{tries}th try] Error: {clip['title']} {clip['url']}", flush=True)
-      print(f"\n{completed_process.stdout}", flush=True)
-      print(f"\n{completed_process.stderr}", flush=True)
-      print(f"\n[{datetime.now()}][{tries}th try] retry download left {3 - tries} ", flush=True)
+      # print(f"\n[{datetime.now()}][{tries}th try] Error: {clip['title']} {clip['url']}", flush=True)
+      # print(f"\n{completed_process.stdout}", flush=True)
+      # print(f"\n{completed_process.stderr}", flush=True)
+      # print(f"\n[{datetime.now()}][{tries}th try] retry download left {3 - tries} ", flush=True)
       time.sleep(3)
       tries += 1
     
     if tries >= 3:
       print(f"\n[{datetime.now()}] Failed to download {clip}", flush=True)
       return clip
-    if tries > 1:
-      print(f"\n[{datetime.now()}] Success to download {clip}", flush=True)
+    # if tries > 1:
+    #   print(f"\n[{datetime.now()}] Success to download {clip}", flush=True)
 
     if saveJson == True:
+      json_data = clip.copy()
+      json_data.pop('_id', None)
+      json_data.pop('download_status', None)
+      json_data.pop('download_path', None)
       json_filename = f"{filename}.json"
       with open(json_filename, 'w', encoding="utf-8") as json_target:
-        json.dump(clip, json_target, indent=2, ensure_ascii=False)
+        json.dump(json_data, json_target, indent=2, ensure_ascii=False)
 
     # set as downloaded
     clip['download_status'] = 1
