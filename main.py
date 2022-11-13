@@ -36,12 +36,13 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
   
   try:
     readSize = int(readSize)
-    if readSize < 0:
-      readSize = 40
+    if readSize < 1:
+      readSize = 1
     elif readSize > 100:
       readSize = 100
   except:
     readSize = 40
+  
   if len(databaseFile) == 0:
     raise Exception("database file path is not valid")
   if len(proxy) == 0:
