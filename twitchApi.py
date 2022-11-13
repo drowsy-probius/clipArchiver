@@ -217,11 +217,8 @@ class TwitchApi:
   def download_clip(self, clip: dict, downloadDirectory: str, saveJson: bool) -> dict:
     """ 
     '2017-12-29T13:12:23Z' -> '2017-12-29T13:12:23'
-
-    주어진 포맷의 timestamp가 방송하는사람 기준인 듯?
-    그러니까 저 시간이 실제 클립 만들어진 시간임.
     """
-    created_at = datetime.fromisoformat(clip['created_at'][:-1]).astimezone(timezone(timedelta(hours=9)))
+    created_at = datetime.fromisoformat(clip['created_at'][:-1]).astimezone(timezone.utc)
     year = str(created_at.year).zfill(4)
     month = str(created_at.month).zfill(2)
     day = str(created_at.day).zfill(2)
