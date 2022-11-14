@@ -187,7 +187,7 @@ class TwitchApi:
     num_of_clips = 0
     with tqdm(unit='clips') as progress_bar:
       for (started_at, ended_at) in date_range_generator():
-        progress_bar.set_description(f"read clips in range {started_at} ~ {ended_at}")
+        progress_bar.set_description_str(f"[{started_at} ~ {ended_at}]")
         clips = {}
         after = ""
         tries = 0

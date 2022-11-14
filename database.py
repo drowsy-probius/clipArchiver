@@ -113,6 +113,7 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
           for future in as_completed(futures):
             updatedClip = future.result()
             self.mark_as_download(loginName, updatedClip)
+            progress_bar.set_description_str(f"[{updatedClip['created_at']}]")
             progress_bar.update(1)
         except KeyboardInterrupt:
           executor.shutdown(wait=True, cancel_futures=True)
