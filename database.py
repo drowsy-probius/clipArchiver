@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sqlite3
 from tqdm import tqdm
+from datetime import datetime
 
 class Database:
   def __init__(self, databasePath) -> None:
@@ -92,7 +93,22 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
       tuple(clip.values()))
     self.connection.commit()
     cursor.close()
-    
+  
+  
+  def get_latest_created_at(self, loginName: str) -> str:
+    cursor = self.connection.cursor()
+    try:
+      latest_created_at = cursor.execute(f'''
+        SELECT MAX(created_at) FROM clips_{loginName}
+      ''').fetchone()[0] # '2017-12-29T13:12:23Z'
+      created_at = datetime.fromisoformat(latest_created_at[:-1])
+      return (created_at.year, created_at.month)
+    except Exception as e:
+      return (2016, 1)
+    finally:
+      cursor.close()
+
+  
   def mark_as_download(self, loginName:str, clip: dict):
     cursor = self.connection.cursor() 
     cursor.execute(f'''
@@ -100,6 +116,7 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
     ''', (clip['download_status'], clip['download_path'], clip['_id']))
     self.connection.commit()
     cursor.close()
+
 
   def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int):
     cursor = self.connection.cursor()

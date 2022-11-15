@@ -140,7 +140,7 @@ class TwitchApi:
     return self.__get(api)
 
   
-  def read_all_clips(self):
+  def read_all_clips(self, from_database_date: bool):
     """_summary_
     클립 기능의 최초 도입 날짜는 2016-05-26T00:00:00Z임
     started_at과 ended_at을 명시하지 않고 조회하면
@@ -159,34 +159,41 @@ class TwitchApi:
     보내면 될 듯.
     
     TODO
-    db로부터 마지막 created_at을 가져온 후
-    그 날짜 이후로부터 요청하면 효율적으로 동작할 것
-    
-    근데 이전 동작에서 모든 클립을 가져온다는 보장이 없으므로
-    원하지 않는 기능일 수 있음.
+    fromDatabaseDate == True이면 database로부터 
+    가장 최신의 created_at을 가져와서
+    그 범위부터 요청함.
     
     Raises:
         KeyboardInterrupt: _description_
     """
-    def date_range_generator():
-      year = 2016 
-      month = 1 
+    def date_range_generator(start_year: int, start_month: int):
+      today = datetime.now()
+      today_year = today.year 
+      today_month = today.month 
+      
+      year = start_year 
+      month = start_month
       while True:
+        if year >= today_year and month > today_month:
+          break
         started_at = f"{year}-{str(month).zfill(2)}-01T00:00:00Z"
         if month == 12:
           month = 1 
           year += 1
         else:
           month += 1
-        if year >= 2023 and month > 2:
-          break
-        # 마지막 날 5분으로 설정해서 혹시 놓치는 값 없는가 확인
+        # 마지막 날 5분으로 설정해서 누락되는 클립 없는가 확인
         ended_at = f"{year}-{str(month).zfill(2)}-01T00:05:00Z" 
         yield (started_at, ended_at)
     
+    start_year = 2016
+    start_month = 1
+    if from_database_date:
+      (start_year, start_month) = self.database.get_latest_created_at(self.loginName)
+    
     num_of_clips = 0
     with tqdm(unit='clips') as progress_bar:
-      for (started_at, ended_at) in date_range_generator():
+      for (started_at, ended_at) in date_range_generator(start_year, start_month):
         progress_bar.set_description_str(f"[{started_at} ~ {ended_at}]")
         clips = {}
         after = ""

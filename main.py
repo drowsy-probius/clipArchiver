@@ -65,10 +65,16 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
   twitchApi = TwitchApi(databaseFile, clientId, clientSecret, streamerId, readSize, proxy)
 
 
-def make_database():
+def make_database(argFromDatabaseDate=False):
   global twitchApi
   try:
-    twitchApi.read_all_clips()
+    fromDatabaseDate = argFromDatabaseDate if argFromDatabaseDate != None else config.get('fromDatabaseDate', False)
+    
+    print(f'''
+    Read clips parameters
+      fromDatabaseDate   {fromDatabaseDate}
+    ''')
+    twitchApi.read_all_clips((fromDatabaseDate == True))
   except Exception as e:
     traceback.print_exception(e)
     sys.exit(0)
@@ -126,6 +132,7 @@ if __name__ == "__main__":
   parser.add_argument("-d", "--download", action="store_true", help="download all clips in database")
   parser.add_argument("-j", "--save-json", action="store_true", help="save clip information as json file")
   parser.add_argument("-f", "--force-download", action="store_true", help="re-download file if marked as downloaded")
+  parser.add_argument("-z", "--from-database-date", action="store_true", help="read clips from twitch in range from the latest month in database")
   
   parser.add_argument("--client-id", help="twitch client id")
   parser.add_argument("--client-secret", help="twitch client secret")
@@ -143,7 +150,9 @@ if __name__ == "__main__":
   init_twitchApi(args.database, args.client_id, args.client_secret, args.streamer, args.read_size, args.proxy)
   if args.skip_build_database != True:
     print(f"Read clips from twitch server...")
-    make_database()
+    make_database(
+      (args.from_database_date == True)
+    )
   if args.download == True:
     print(f"Download clips...")
     download_clips_from_database(
