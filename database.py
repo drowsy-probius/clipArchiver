@@ -109,7 +109,7 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
       cursor.close()
 
   
-  def mark_as_download(self, loginName:str, clip: dict):
+  def update_download_info(self, loginName:str, clip: dict):
     cursor = self.connection.cursor() 
     cursor.execute(f'''
     UPDATE clips_{loginName} SET download_status=?, download_path=? WHERE _id=?
@@ -118,10 +118,17 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
     cursor.close()
 
 
-  def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int):
+  def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int, forceDownload: bool = False):
     cursor = self.connection.cursor()
-    row_length = cursor.execute(f"SELECT count(*) FROM clips_{loginName} WHERE view_count >= ?", (minView, )).fetchone()[0]
-    cursor.execute(f"SELECT * FROM clips_{loginName} WHERE view_count >= ?", (minView, ))
+    row_length_query = f"SELECT count(*) FROM clips_{loginName} WHERE view_count >= ?"
+    if forceDownload != True:
+      row_length_query += f" AND download_status != 1"
+    row_length = cursor.execute(row_length_query, (minView, )).fetchone()[0]
+    
+    query = f"SELECT * FROM clips_{loginName} WHERE view_count >= ?"
+    if forceDownload != True:
+      query += f" AND download_status != 1"
+    cursor.execute(f"SELECT * FROM clips_{loginName} WHERE view_count >= ? AND download_status != 1", (minView, ))
 
     with tqdm(total=row_length, unit='clips') as progress_bar:
       with ThreadPoolExecutor(max_workers=concurrency) as executor:
@@ -129,10 +136,14 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
           futures = [executor.submit(callback, self.map_row_with_schema(row)) for row in cursor]
           for future in as_completed(futures):
             updatedClip = future.result()
-            self.mark_as_download(loginName, updatedClip)
-            progress_bar.set_description_str(f"[{updatedClip['created_at']}]")
-            progress_bar.update(1)
+            self.update_download_info(loginName, updatedClip)
+            if updatedClip['download_status'] == 1:
+              progress_bar.set_description_str(f"SUCCESS [{updatedClip['created_at']}]")
+              progress_bar.update(1)
+            else: 
+              progress_bar.set_description_str(f"FAIL [{updatedClip['created_at']}]")
         except KeyboardInterrupt:
+          print("KeyboardInterrupt! wait for currently running jobs.")
           executor.shutdown(wait=True, cancel_futures=True)
           print("KeyboardInterrupt! exit")
 

@@ -262,6 +262,8 @@ class TwitchApi:
     commands = [sys.executable, "-m", "streamlink", "-o", clip_filename, "--force"] + proxy_option + [clip["url"], "best"]
     
     tries = 1
+    stdout = ""
+    stderr = ""
     while tries < 4:
       completed_process = subprocess.run(
         commands,
@@ -270,16 +272,15 @@ class TwitchApi:
       return_code = completed_process.returncode
       if return_code == 0:
         break
-
-      # print(f"\n[{datetime.now()}][{tries}th try] Error: {clip['title']} {clip['url']}", flush=True)
-      # print(f"\n{completed_process.stdout}", flush=True)
-      # print(f"\n{completed_process.stderr}", flush=True)
-      # print(f"\n[{datetime.now()}][{tries}th try] retry download left {3 - tries} ", flush=True)
+      stdout = completed_process.stdout 
+      stderr = completed_process.stderr
       time.sleep(3)
       tries += 1
     
     if tries >= 3:
       print(f"\n[{datetime.now()}] Failed to download {clip}", flush=True)
+      print(f"\n{stdout}", flush=True)
+      print(f"\n{stderr}", flush=True)
       return clip
     # if tries > 1:
     #   print(f"\n[{datetime.now()}] Success to download {clip}", flush=True)
@@ -301,10 +302,8 @@ class TwitchApi:
   
   def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int):
     def clip_handler(clip):
-      if forceDownload == False and clip['download_status'] == 1:
-        return clip
       return self.download_clip(clip, downloadDirectory, saveJson)
-    self.database.iterate_rows(self.loginName, clip_handler, concurrency, minView)
+    self.database.iterate_rows(self.loginName, clip_handler, concurrency, minView, forceDownload)
     
     
   
