@@ -43,9 +43,9 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
   except:
     readSize = 40
   
-  if len(databaseFile) == 0:
+  if databaseFile != None and len(databaseFile) == 0:
     raise Exception("database file path is not valid")
-  if len(proxy) == 0:
+  if proxy != None and len(proxy) == 0:
     proxy = None
   if clientId == None or len(clientId) == 0:
     raise Exception("client_id is needed")
