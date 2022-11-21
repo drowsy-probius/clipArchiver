@@ -300,10 +300,10 @@ class TwitchApi:
 
   
   
-  def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int):
+  def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int, maxClips: int):
     def clip_handler(clip):
       return self.download_clip(clip, downloadDirectory, saveJson)
-    self.database.iterate_rows(self.loginName, clip_handler, concurrency, minView, forceDownload)
+    self.database.iterate_rows(self.loginName, clip_handler, concurrency, minView, maxClips, forceDownload)
     
     
   

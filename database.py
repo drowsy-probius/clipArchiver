@@ -118,17 +118,22 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
     cursor.close()
 
 
-  def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int, forceDownload: bool = False):
+  def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int, maxClips: int, forceDownload: bool = False):
     cursor = self.connection.cursor()
     row_length_query = f"SELECT count(*) FROM clips_{loginName} WHERE view_count >= ?"
     if forceDownload != True:
       row_length_query += f" AND download_status != 1"
     row_length = cursor.execute(row_length_query, (minView, )).fetchone()[0]
     
+    if maxClips != -1 and maxClips < row_length:
+      row_length = maxClips
+    
     query = f"SELECT * FROM clips_{loginName} WHERE view_count >= ?"
     if forceDownload != True:
       query += f" AND download_status != 1"
-    cursor.execute(f"SELECT * FROM clips_{loginName} WHERE view_count >= ? AND download_status != 1", (minView, ))
+    if maxClips != -1:
+      query += f" LIMIT {maxClips}"
+    cursor.execute(query, (minView, ))
 
     with tqdm(total=row_length, unit='clips') as progress_bar:
       with ThreadPoolExecutor(max_workers=concurrency) as executor:
