@@ -135,7 +135,7 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
       query += f" LIMIT {maxClips}"
     cursor.execute(query, (minView, ))
 
-    with tqdm(total=row_length, unit='clips') as progress_bar:
+    with tqdm(total=row_length, unit='clip') as progress_bar:
       with ThreadPoolExecutor(max_workers=concurrency) as executor:
         try:
           futures = [executor.submit(callback, self.map_row_with_schema(row)) for row in cursor]

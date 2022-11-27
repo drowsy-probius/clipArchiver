@@ -192,7 +192,7 @@ class TwitchApi:
       (start_year, start_month) = self.database.get_latest_created_at(self.loginName)
     
     num_of_clips = 0
-    with tqdm(unit='clips') as progress_bar:
+    with tqdm(unit='clip') as progress_bar:
       for (started_at, ended_at) in date_range_generator(start_year, start_month):
         progress_bar.set_description_str(f"[{started_at} ~ {ended_at}]")
         clips = {}
