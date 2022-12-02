@@ -174,7 +174,7 @@ class TwitchApi:
       year = start_year 
       month = start_month
       while True:
-        if year >= today_year and month > today_month:
+        if f'{year}-{str(month).zfill(2)}' > f'{today_year}-{str(today_month).zfill(2)}':
           break
         started_at = f"{year}-{str(month).zfill(2)}-01T00:00:00Z"
         if month == 12:
