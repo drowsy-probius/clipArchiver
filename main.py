@@ -55,7 +55,7 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
     raise Exception("streamer_id is needed")
   print(f'''
     Init parameters
-      databaseFile  {os.path.join(databaseFile)}
+      databaseFile  {os.path.realpath(databaseFile)}
       clientId      HIDDEN
       clientSecret  HIDDEN
       streamerId    {streamerId}
