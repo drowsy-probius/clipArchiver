@@ -55,7 +55,7 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
     raise Exception("streamer_id is needed")
   print(f'''
     Init parameters
-      databaseFile  {databaseFile}
+      databaseFile  {os.path.join(databaseFile)}
       clientId      HIDDEN
       clientSecret  HIDDEN
       streamerId    {streamerId}
@@ -117,7 +117,7 @@ def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJs
     
     print(f'''
     Download parameters
-      downloadDirectory   {downloadDirectory}
+      downloadDirectory   {os.path.realpath(downloadDirectory)}
       saveJson            {saveJson}
       forceDownload       {forceDownload}
       minView             {minView}
