@@ -66,11 +66,11 @@ class TwitchApi:
       raise Exception(res.json())
     return res.json()
   
-  def __post(self, url, headers={}, data={}):
+  def __post(self, url, headers={}, data=None, json=None):
     if self.proxy == None:
-      res = self.session.post(url, headers=headers, data=data)
+      res = self.session.post(url, headers=headers, data=data, json=json)
     else:
-      res = self.session.post(url, headers=headers, data=data, proxies=self.proxies)
+      res = self.session.post(url, headers=headers, data=data, json=json, proxies=self.proxies)
     if not res.ok:
       raise Exception(res.json())
     return res.json()
@@ -128,7 +128,8 @@ class TwitchApi:
       print(f"credentials is not valid")
       raise Exception(e)
     
-    
+  
+  
   def read_clips(self, after, started_at, ended_at):    
     api = f"https://api.twitch.tv/helix/clips?broadcaster_id={self.broadcasterId}&first={self.readSize}"
     if after != None and len(after) != 0:

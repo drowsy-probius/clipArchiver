@@ -16,6 +16,7 @@ class ClipDatabase(Database):
   def __init__(self, databasePath) -> None:
     super().__init__(databasePath)
   
+    
   def create_table(self, loginName):
     cursor = self.connection.cursor() 
     cursor.execute(f'''
@@ -37,8 +38,10 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
   thumbnail_url TEXT,
   duration REAL,
   vod_offset INTEGER,
+  vod_url TEXT,
   download_status INTEGER DEFAULT 0,
-  download_path TEXT DEFAULT ""
+  download_path TEXT DEFAULT "",
+  updated_at TIMESTAMP
 );
 ''')
     self.connection.commit()
@@ -50,7 +53,8 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
       '_id', 'id', 'url', 'embed_url', 'broadcaster_id',
       'broadcaster_name', 'creater_id', 'creater_name', 'video_id', 'game_id',
       'language', 'title', 'view_count', 'created_at', 'thumbnail_url',
-      'duration', 'vod_offset', 'download_status', 'download_path',
+      'duration', 'vod_offset', 'vod_url', 'download_status', 'download_path',
+      'updated_at',
     ]
     if len(row) != len(schema): 
       raise Exception(f"{row} and {schema} length mismatch")
@@ -65,10 +69,23 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
     if clip['vod_offset'] == None:
       clip['vod_offset'] = -1
   
+    clip['vod_url'] = clip['thumbnail_url'][:(clip['thumbnail_url'].index('-preview-'))] + '.mp4'
+    clip['updated_at'] = datetime.now()
     clipValues = tuple(clip.values())
     cursor.execute(f'''
-INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
-''')
+    INSERT OR IGNORE INTO clips_{loginName}(
+      id, url, embed_url, broadcaster_id, broadcaster_name,
+      creater_id, creater_name, video_id, game_id, language, 
+      title, view_count, created_at, thumbnail_url, duration, 
+      vod_offset, vod_url, updated_at
+    ) VALUES (
+      ?,?,?,?,?,
+      ?,?,?,?,?,
+      ?,?,?,?,?,
+      ?,?,?
+    ) ON CONFLICT (id) 
+    DO UPDATE SET updated_at={clip['updated_at']}, view_count={clip['view_count']};''', 
+    clipValues)
     self.connection.commit()
     cursor.close()
     
@@ -78,19 +95,24 @@ INSERT OR IGNORE INTO clips_{loginName} VALUES {clipValues};
     for clip in clips:
       if clip['vod_offset'] == None:
         clip['vod_offset'] = -1
+        
+      clip['vod_url'] = clip['thumbnail_url'][:(clip['thumbnail_url'].index('-preview-'))] + '.mp4'
+      clip['updated_at'] = datetime.now()
+      clipValues = tuple(clip.values())
       cursor.execute(f'''
       INSERT OR IGNORE INTO clips_{loginName}(
         id, url, embed_url, broadcaster_id, broadcaster_name,
         creater_id, creater_name, video_id, game_id, language, 
         title, view_count, created_at, thumbnail_url, duration, 
-        vod_offset
+        vod_offset, vod_url, updated_at
       ) VALUES (
         ?,?,?,?,?,
         ?,?,?,?,?,
         ?,?,?,?,?,
-        ?
-      );''', 
-      tuple(clip.values()))
+        ?,?,?
+      ) ON CONFLICT (id) 
+      DO UPDATE SET updated_at={clip['updated_at']}, view_count={clip['view_count']};''', 
+      clipValues)
     self.connection.commit()
     cursor.close()
   
