@@ -84,8 +84,9 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
       ?,?,?,?,?,
       ?,?,?
     ) ON CONFLICT (id) 
-    DO UPDATE SET updated_at={clip['updated_at']}, view_count={clip['view_count']};''', 
-    clipValues)
+    DO UPDATE SET updated_at=?, view_count=?;''', 
+    clipValues + (clip['updated_at'], clip['view_count'])
+    )
     self.connection.commit()
     cursor.close()
     
@@ -111,8 +112,8 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
         ?,?,?,?,?,
         ?,?,?
       ) ON CONFLICT (id) 
-      DO UPDATE SET updated_at={clip['updated_at']}, view_count={clip['view_count']};''', 
-      clipValues)
+      DO UPDATE SET updated_at=?, view_count=?;''', 
+      clipValues + (clip['updated_at'], clip['view_count']))
     self.connection.commit()
     cursor.close()
   
