@@ -223,9 +223,55 @@ class TwitchApi:
             tries += 1
         if tries >= 3:
           print(f"\n[{datetime.now()}] Failed while requesting ({after}, {started_at}, {ended_at}) => {clips}", flush=True)
-  
     print(f"total clips with duplicated: {num_of_clips}")
 
+
+  def path_constructor(self, downloadDirectory: str, clip: dict):
+    """ 
+    make parent directories and 
+    returns full-path-without-file-extension
+    """
+    
+    
+    """ 
+    '2017-12-29T13:12:23Z' -> '2017-12-29T13:12:23'
+    """
+    created_at = datetime.fromisoformat(clip['created_at'][:-1]) + datetime.now(timezone.utc).astimezone().utcoffset()
+    year = str(created_at.year).zfill(4)
+    month = str(created_at.month).zfill(2)
+    day = str(created_at.day).zfill(2)
+    hour = str(created_at.hour).zfill(2)
+    minute = str(created_at.minute).zfill(2)
+    second = str(created_at.second).zfill(2)
+    
+    broadcasterDirectory = f"{clip['broadcaster_name']} ({self.loginName})"
+    clip_title = truncate_string_in_byte_size(clip['title'].strip())
+    clip_id = clip["id"][:10]
+    title = f"[{year}{month}{day}-{hour}{minute}{second}] {clip_title} ({clip_id})"
+    title = replace_invalid_filename(title)
+    fileDirectory = os.path.join(
+      downloadDirectory, 
+      broadcasterDirectory, 
+      year,
+      f"{year}-{month}",
+      f"{year}-{month}-{day}",
+    )
+    os.makedirs(fileDirectory, exist_ok=True)
+    return os.path.join(fileDirectory, title)
+
+
+  def save_json(self, clip: dict, filename: str):
+    try:
+      json_data = clip.copy()
+      json_data.pop('_id', None)
+      json_data.pop('download_status', None)
+      json_data.pop('download_path', None)
+      with open(filename, 'w', encoding="utf-8") as f:
+        json.dump(json_data, f, indent=2, ensure_ascii=False)
+      return (True, clip) 
+    except Exception as e:
+      return (False, clip)
+    
 
   def download_clip(self, clip: dict, downloadDirectory: str, saveJson: bool) -> dict:
     def streamlink_method(commands: list):
@@ -258,46 +304,17 @@ class TwitchApi:
         # print(f"request_method failed | {e}", flush=True)
         return False 
     
-    """ 
-    '2017-12-29T13:12:23Z' -> '2017-12-29T13:12:23'
-    """
-    created_at = datetime.fromisoformat(clip['created_at'][:-1]) + datetime.now(timezone.utc).astimezone().utcoffset()
-    year = str(created_at.year).zfill(4)
-    month = str(created_at.month).zfill(2)
-    day = str(created_at.day).zfill(2)
-    hour = str(created_at.hour).zfill(2)
-    minute = str(created_at.minute).zfill(2)
-    second = str(created_at.second).zfill(2)
+    filename = self.path_constructor(downloadDirectory, clip)
+    clip_path = f'{filename}.mp4' # json 저장 때문에 다른 변수 사용함
     
-    broadcasterDirectory = f"{clip['broadcaster_name']} ({self.loginName})"
-    clip_title = truncate_string_in_byte_size(clip['title'].strip())
-    clip_id = clip["id"][:10]
-    title = f"[{year}{month}{day}-{hour}{minute}{second}] {clip_title} ({clip_id})"
-    title = replace_invalid_filename(title)
-    fileDirectory = filename = os.path.join(
-      downloadDirectory, 
-      broadcasterDirectory, 
-      year,
-      f"{year}-{month}",
-      f"{year}-{month}-{day}",
-    )
-    filename = os.path.join(
-      fileDirectory,
-      f'{title}.mp4',
-    )
-    
-    # set as pending
+    # set status as pending
     clip['download_status'] = 2
-    clip['download_path'] = os.path.realpath(filename)
+    clip['download_path'] = os.path.realpath(clip_path)
     
-    # 파일 존재 확인은 건너뛰고
-    # 이전의 forceDownload와 db값으로만 판별함.
-    os.makedirs(fileDirectory, exist_ok=True)
     success = False 
     
-    
     proxy_option = [] if self.proxy == None else ["--http-proxy", self.proxy]
-    commands = [sys.executable, "-m", "streamlink", "-o", filename, "--force"] + proxy_option + [clip["url"], "best"]
+    commands = [sys.executable, "-m", "streamlink", "-o", clip_path, "--force"] + proxy_option + [clip["url"], "best"]
     for _ in range(2):
       success = streamlink_method(commands)
       if success: 
@@ -305,36 +322,47 @@ class TwitchApi:
       time.sleep(2) 
     
     if not success:
-      print(f"\n[{datetime.now()}] Use request method for {clip['url']}", flush=True)
+      print(f"\n[{datetime.now()}] Use request method for {clip['created_at']}-{clip['url']}", flush=True)
       for _ in range(2):
-        success = request_method(clip['vod_url'], filename, self.proxies)
+        success = request_method(clip['vod_url'], clip_path, self.proxies)
         if success: 
           break 
         time.sleep(2)
     
     if not success:
-      print(f"\n[{datetime.now()}] Failed to download {clip}", flush=True)
+      print(f"\n[{datetime.now()}] Failed to download {clip['created_at']}-{clip['url']}", flush=True)
       return clip 
 
     if saveJson == True:
-      json_data = clip.copy()
-      json_data.pop('_id', None)
-      json_data.pop('download_status', None)
-      json_data.pop('download_path', None)
-      json_filename = f"{filename}.json"
-      with open(json_filename, 'w', encoding="utf-8") as json_target:
-        json.dump(json_data, json_target, indent=2, ensure_ascii=False)
+      self.save_json(clip, f'{filename}.json')
 
     # set as downloaded
     clip['download_status'] = 1
     return clip
 
-  
-  
+
   def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int, maxClips: int):
     def clip_handler(clip):
       return self.download_clip(clip, downloadDirectory, saveJson)
-    self.database.iterate_rows(self.loginName, clip_handler, concurrency, minView, maxClips, forceDownload)
+    self.database.iterate_incomplete_rows(
+      self.loginName, 
+      clip_handler, 
+      concurrency, 
+      minView, 
+      maxClips, 
+      forceDownload
+    )
+  
+  
+  def write_json_from_database(self, downloadDirectory: str, concurrency: int):
+    def save_json_clip_handler(clip):
+      filename = self.path_constructor(downloadDirectory, clip)
+      return self.save_json(clip, f'{filename}.json')
     
+    self.database.iterate_completed_rows(
+      self.loginName, 
+      save_json_clip_handler,
+      concurrency,
+    )
     
   

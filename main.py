@@ -65,6 +65,33 @@ def init_twitchApi(argDatabase, argClientId, argClientSecret, argStreamer, argRe
   twitchApi = TwitchApi(databaseFile, clientId, clientSecret, streamerId, readSize, proxy)
 
 
+def write_json(argDownloadDirectory, argConcurrency):
+  global twitchApi
+  try:
+    downloadDirectory = argDownloadDirectory if argDownloadDirectory != None else config.get('downloadDirectory', None)
+    concurrency = argConcurrency if argConcurrency != None else config.get('concurrency', 6)
+    if downloadDirectory == None:
+      raise Exception(f"download directory is not specified!")
+    try:
+      concurrency = int(argConcurrency)
+    except:
+      concurrency = 6
+    
+    if concurrency < 0:
+      concurrency = 1
+      
+    print(f'''
+    write_json parameters
+      downloadDirectory   {os.path.realpath(downloadDirectory)}
+      concurrency         {concurrency}
+    ''')
+    twitchApi.write_json_from_database(downloadDirectory, concurrency)
+  except Exception as e:
+    traceback.print_exception(e)
+    sys.exit(1)
+  sys.exit(0)
+
+
 def make_database(argFromDatabaseDate=False):
   global twitchApi
   try:
@@ -77,7 +104,7 @@ def make_database(argFromDatabaseDate=False):
     twitchApi.read_all_clips((fromDatabaseDate == True))
   except Exception as e:
     traceback.print_exception(e)
-    sys.exit(0)
+    sys.exit(1)
 
 
 def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJson, argForceDownload, argMinView, argMaxClips):
@@ -127,7 +154,7 @@ def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJs
     twitchApi.download_clips_from_database(downloadDirectory, concurrency, saveJson, forceDownload, minView, maxClips)
   except Exception as e:
     traceback.print_exception(e)
-    sys.exit(0)
+    sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -143,6 +170,8 @@ if __name__ == "__main__":
   parser.add_argument("-f", "--force-download", action="store_true", help="re-download file if marked as downloaded")
   parser.add_argument("-z", "--from-database-date", action="store_true", help="read clips from twitch in range from the latest month in database")
   
+  parser.add_argument("--json-only", action="store_true", help="update json file from database information. Use with download_directory option")
+  
   parser.add_argument("--client-id", help="twitch client id")
   parser.add_argument("--client-secret", help="twitch client secret")
   
@@ -154,15 +183,25 @@ if __name__ == "__main__":
   parser.add_argument("--read-size", help="the number of clips fetch from twitch server. (default=40)")
   parser.add_argument("--concurrency", help="download concurrency. (default=6)")
   parser.add_argument("--proxy", help="proxy url")
-
+  
   args = parser.parse_args() 
   
   init_twitchApi(args.database, args.client_id, args.client_secret, args.streamer, args.read_size, args.proxy)
+  
   if args.skip_build_database != True:
     print(f"Read clips from twitch server...")
     make_database(
       (args.from_database_date == True)
     )
+  
+  if args.json_only == True:
+    # exits program
+    print(f"Overwrite all json files")
+    write_json(
+      args.download_directory,
+      args.concurrency,
+    )
+    
   if args.download == True:
     print(f"Download clips...")
     download_clips_from_database(

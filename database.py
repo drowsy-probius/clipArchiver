@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
     cursor.close()
 
 
-  def iterate_rows(self, loginName: str, callback, concurrency: int, minView: int, maxClips: int, forceDownload: bool = False):
+  def iterate_incomplete_rows(self, loginName: str, callback, concurrency: int, minView: int, maxClips: int, forceDownload: bool = False):
     cursor = self.connection.cursor()
     row_length_query = f"SELECT count(*) FROM clips_{loginName} WHERE view_count >= ?"
     if forceDownload != True:
@@ -142,18 +142,40 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
         try:
           futures = [executor.submit(callback, dict(row)) for row in cursor]
           for future in as_completed(futures):
-            updatedClip = future.result()
-            self.update_download_info(loginName, updatedClip)
-            if updatedClip['download_status'] == 1:
-              progress_bar.set_description_str(f"[{loginName}] SUCCESS [{updatedClip['created_at']}]")
+            clip = future.result()
+            self.update_download_info(loginName, clip)
+            if clip['download_status'] == 1:
+              progress_bar.set_description_str(f"[{loginName}] success to download {clip['created_at']}")
               progress_bar.update(1)
             else: 
-              progress_bar.set_description_str(f"[{loginName}] FAIL [{updatedClip['created_at']}]")
+              progress_bar.set_description_str(f"[{loginName}] failed to download {clip['created_at']}")
         except KeyboardInterrupt:
           print("KeyboardInterrupt! wait for currently running jobs.")
           executor.shutdown(wait=True, cancel_futures=True)
           print("KeyboardInterrupt! exit")
-
     cursor.close()
   
+  
+  def iterate_completed_rows(self, loginName: str, callback, concurrency=10):
+    cursor = self.connection.cursor()
+    
+    row_length = cursor.execute(f"SELECT count(*) FROM clips_{loginName} WHERE download_status = 1").fetchone()[0]
+    cursor.execute(f"SELECT * FROM clips_{loginName} WHERE download_status = 1")
+
+    with tqdm(total=row_length, unit='clip') as progress_bar:
+      with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        try:
+          futures = [executor.submit(callback, dict(row)) for row in cursor]
+          for future in as_completed(futures):
+            (status, clip) = future.result()
+            if status:
+              progress_bar.set_description_str(f"[{loginName}] success to save json {clip['created_at']}")
+              progress_bar.update(1)
+            else:
+              progress_bar.set_description_str(f"[{loginName}] failed to save json {clip['created_at']}")
+        except KeyboardInterrupt:
+          print("KeyboardInterrupt! wait for currently running jobs.")
+          executor.shutdown(wait=True, cancel_futures=True)
+          print("KeyboardInterrupt! exit")
+    cursor.close()
 
