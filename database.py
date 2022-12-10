@@ -7,6 +7,7 @@ class Database:
   def __init__(self, databasePath) -> None:
     self.path = databasePath
     self.connection: sqlite3.Connection = sqlite3.connect(databasePath)
+    self.connection.row_factory = sqlite3.Row # column mapped data
 
   def __del__(self):
     self.connection.close()
@@ -47,22 +48,6 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
     self.connection.commit()
     cursor.close()
 
-
-  def map_row_with_schema(self, row):
-    schema = [
-      '_id', 'id', 'url', 'embed_url', 'broadcaster_id',
-      'broadcaster_name', 'creater_id', 'creater_name', 'video_id', 'game_id',
-      'language', 'title', 'view_count', 'created_at', 'thumbnail_url',
-      'duration', 'vod_offset', 'vod_url', 'download_status', 'download_path',
-      'updated_at',
-    ]
-    if len(row) != len(schema): 
-      raise Exception(f"{row} and {schema} length mismatch")
-    result = {}
-    for i in range(len(row)):
-      result[schema[i]] = row[i]
-    return result 
-      
 
   def insert_item(self, loginName: str, clip: dict):
     cursor = self.connection.cursor() 
@@ -155,7 +140,7 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
     with tqdm(total=row_length, unit='clip') as progress_bar:
       with ThreadPoolExecutor(max_workers=concurrency) as executor:
         try:
-          futures = [executor.submit(callback, self.map_row_with_schema(row)) for row in cursor]
+          futures = [executor.submit(callback, dict(row)) for row in cursor]
           for future in as_completed(futures):
             updatedClip = future.result()
             self.update_download_info(loginName, updatedClip)

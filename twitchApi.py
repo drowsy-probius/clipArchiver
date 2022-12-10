@@ -228,6 +228,36 @@ class TwitchApi:
 
 
   def download_clip(self, clip: dict, downloadDirectory: str, saveJson: bool) -> dict:
+    def streamlink_method(commands: list):
+      try:
+        completed_process = subprocess.run(
+          commands,
+          capture_output=True
+        )
+        return_code = completed_process.returncode
+        return (return_code == 0)
+      except Exception as e:
+        # print(f"streamlink_method failed | {e}", flush=True)
+        return False 
+    
+    def request_method(vod_url, filename, proxy={}):
+      try:
+        res = requests.get(
+          vod_url, 
+          stream=True, 
+          proxies=proxy
+        ) 
+        if not res.ok:
+          return False 
+        with open(filename, 'wb') as f: 
+          for chunk in res.iter_content(chunk_size=1024*1024): 
+            if chunk:
+              f.write(chunk)
+        return True
+      except Exception as e:
+        # print(f"request_method failed | {e}", flush=True)
+        return False 
+    
     """ 
     '2017-12-29T13:12:23Z' -> '2017-12-29T13:12:23'
     """
@@ -253,43 +283,38 @@ class TwitchApi:
     )
     filename = os.path.join(
       fileDirectory,
-      title,
+      f'{title}.mp4',
     )
-    clip_filename = f"{filename}.mp4"
     
     # set as pending
     clip['download_status'] = 2
-    clip['download_path'] = os.path.realpath(clip_filename)
+    clip['download_path'] = os.path.realpath(filename)
     
     # 파일 존재 확인은 건너뛰고
     # 이전의 forceDownload와 db값으로만 판별함.
     os.makedirs(fileDirectory, exist_ok=True)
+    success = False 
+    
+    
     proxy_option = [] if self.proxy == None else ["--http-proxy", self.proxy]
-    commands = [sys.executable, "-m", "streamlink", "-o", clip_filename, "--force"] + proxy_option + [clip["url"], "best"]
+    commands = [sys.executable, "-m", "streamlink", "-o", filename, "--force"] + proxy_option + [clip["url"], "best"]
+    for _ in range(2):
+      success = streamlink_method(commands)
+      if success: 
+        break 
+      time.sleep(2) 
     
-    tries = 1
-    stdout = ""
-    stderr = ""
-    while tries < 4:
-      completed_process = subprocess.run(
-        commands,
-        capture_output=True
-      )
-      return_code = completed_process.returncode
-      if return_code == 0:
-        break
-      stdout = completed_process.stdout 
-      stderr = completed_process.stderr
-      time.sleep(3)
-      tries += 1
+    if not success:
+      print(f"\n[{datetime.now()}] Use request method for {clip['url']}", flush=True)
+      for _ in range(2):
+        success = request_method(clip['vod_url'], filename, self.proxies)
+        if success: 
+          break 
+        time.sleep(2)
     
-    if tries >= 3:
+    if not success:
       print(f"\n[{datetime.now()}] Failed to download {clip}", flush=True)
-      print(f"\n{stdout}", flush=True)
-      print(f"\n{stderr}", flush=True)
-      return clip
-    # if tries > 1:
-    #   print(f"\n[{datetime.now()}] Success to download {clip}", flush=True)
+      return clip 
 
     if saveJson == True:
       json_data = clip.copy()
