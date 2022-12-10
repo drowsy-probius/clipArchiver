@@ -187,8 +187,12 @@ class TwitchApi:
         ended_at = f"{year}-{str(month).zfill(2)}-01T00:05:00Z" 
         yield (started_at, ended_at)
     
-    start_year = 2016
-    start_month = 1
+    def expand_clip(clip: dict):
+      clip['vod_url'] = clip['thumbnail_url'][:(clip['thumbnail_url'].index('-preview-'))] + '.mp4'
+      clip['updated_at'] = datetime.now()
+      return clip 
+    
+    start_year, start_month = 2016, 1
     if from_database_date:
       (start_year, start_month) = self.database.get_latest_created_at(self.loginName)
     
@@ -201,13 +205,14 @@ class TwitchApi:
         tries = 0
         while tries < 3:
           try:
-            clips = self.read_clips(after, started_at, ended_at)
-            data = clips['data']
-            pagination = clips['pagination']
-            num_of_clips += len(data)
-            if len(data) > 0:
-              self.database.insertmany_item(self.loginName, data)
-              progress_bar.update(len(data))
+            res_json = self.read_clips(after, started_at, ended_at)
+            clips = res_json['data']
+            clips = [expand_clip(clip) for clip in clips]
+            pagination = res_json['pagination']
+            num_of_clips += len(clips)
+            if len(clips) > 0:
+              self.database.insertmany_item(self.loginName, clips)
+              progress_bar.update(len(clips))
             if 'cursor' not in pagination:
               break
             after = pagination['cursor']

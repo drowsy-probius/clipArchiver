@@ -68,9 +68,6 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
     cursor = self.connection.cursor() 
     if clip['vod_offset'] == None:
       clip['vod_offset'] = -1
-  
-    clip['vod_url'] = clip['thumbnail_url'][:(clip['thumbnail_url'].index('-preview-'))] + '.mp4'
-    clip['updated_at'] = datetime.now()
     clipValues = tuple(clip.values())
     cursor.execute(f'''
     INSERT OR IGNORE INTO clips_{loginName}(
@@ -96,9 +93,6 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
     for clip in clips:
       if clip['vod_offset'] == None:
         clip['vod_offset'] = -1
-        
-      clip['vod_url'] = clip['thumbnail_url'][:(clip['thumbnail_url'].index('-preview-'))] + '.mp4'
-      clip['updated_at'] = datetime.now()
       clipValues = tuple(clip.values())
       cursor.execute(f'''
       INSERT OR IGNORE INTO clips_{loginName}(
@@ -166,10 +160,10 @@ CREATE TABLE IF NOT EXISTS clips_{loginName} (
             updatedClip = future.result()
             self.update_download_info(loginName, updatedClip)
             if updatedClip['download_status'] == 1:
-              progress_bar.set_description_str(f"SUCCESS [{updatedClip['created_at']}]")
+              progress_bar.set_description_str(f"[{loginName}] SUCCESS [{updatedClip['created_at']}]")
               progress_bar.update(1)
             else: 
-              progress_bar.set_description_str(f"FAIL [{updatedClip['created_at']}]")
+              progress_bar.set_description_str(f"[{loginName}] FAIL [{updatedClip['created_at']}]")
         except KeyboardInterrupt:
           print("KeyboardInterrupt! wait for currently running jobs.")
           executor.shutdown(wait=True, cancel_futures=True)
