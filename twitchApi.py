@@ -54,9 +54,10 @@ class TwitchApi:
     self.broadcasterId = streamerId if self.__is_broadcaster_id(streamerId) else self.__get_broadcaster_id(streamerId)
     self.loginName = streamerId if not self.__is_broadcaster_id(streamerId) else self.__get_loginName(streamerId)
     self.database.create_table(self.loginName)
+    self.__print_ip()
   
 
-  def __get(self, url, headers={}):
+  def __get(self, url, headers={}) -> dict:
     headers.update(self.authHeader)
     if self.proxy == None:
       res = self.session.get(url, headers=headers)
@@ -66,7 +67,7 @@ class TwitchApi:
       raise Exception(res.json())
     return res.json()
   
-  def __post(self, url, headers={}, data=None, json=None):
+  def __post(self, url, headers={}, data=None, json=None) -> dict:
     if self.proxy == None:
       res = self.session.post(url, headers=headers, data=data, json=json)
     else:
@@ -128,7 +129,13 @@ class TwitchApi:
       print(f"credentials is not valid")
       raise Exception(e)
     
-  
+  def __print_ip(self):
+    try:
+      res = self.__get('https://ifconfig.co/json')
+      print(res) 
+    except Exception as e:
+      print(e)
+      print(f'ip checker error. not critical...')
   
   def read_clips(self, after, started_at, ended_at):    
     api = f"https://api.twitch.tv/helix/clips?broadcaster_id={self.broadcasterId}&first={self.readSize}"
