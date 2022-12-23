@@ -107,12 +107,21 @@ def make_database(argFromDatabaseDate=False):
     sys.exit(1)
 
 
-def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJson, argForceDownload, argMinView, argMaxClips):
+def download_clips_from_database(
+    argDownloadDirectory, 
+    argConcurrency, 
+    argSaveJson, 
+    argForceDownload, 
+    argSkipDownloadIfExists,
+    argMinView, 
+    argMaxClips
+  ):
   global config, twitchApi
   try:
     downloadDirectory = argDownloadDirectory if argDownloadDirectory != None else config.get('downloadDirectory', None)
     saveJson = argSaveJson if argSaveJson != None else config.get('saveJson', False)
     forceDownload = argForceDownload if argForceDownload != None else config.get('forceDownload', False)
+    skipDownloadIfExists = argSkipDownloadIfExists if argSkipDownloadIfExists != None else config.get('skipDownloadIfExists', False)
     minView = argMinView if argMinView != None else config.get('minView', -1)
     maxClips = argMaxClips if argMaxClips != None else config.get('maxClips', -1)
     concurrency = argConcurrency if argConcurrency != None else config.get('concurrency', 6)
@@ -151,7 +160,15 @@ def download_clips_from_database(argDownloadDirectory, argConcurrency, argSaveJs
       maxClips            {maxClips}
       concurrency         {concurrency}
     ''')
-    twitchApi.download_clips_from_database(downloadDirectory, concurrency, saveJson, forceDownload, minView, maxClips)
+    twitchApi.download_clips_from_database(
+      downloadDirectory, 
+      concurrency, 
+      saveJson, 
+      forceDownload,
+      skipDownloadIfExists,
+      minView, 
+      maxClips
+    )
   except Exception as e:
     traceback.print_exception(e)
     sys.exit(1)
@@ -169,6 +186,7 @@ if __name__ == "__main__":
   parser.add_argument("-j", "--save-json", action="store_true", help="save clip information as json file")
   parser.add_argument("-f", "--force-download", action="store_true", help="re-download file if marked as downloaded")
   parser.add_argument("-z", "--from-database-date", action="store_true", help="read clips from twitch in range from the latest month in database")
+  parser.add_argument("-e", "--skip-download-if-exists", action="store_true", help="do not download clips if exists on file system.")
   
   parser.add_argument("--json-only", action="store_true", help="update json file from database information. Use with download_directory option")
   
@@ -209,6 +227,7 @@ if __name__ == "__main__":
       args.concurrency,
       (args.save_json == True),
       (args.force_download == True),
+      (args.skip_download_if_exists == True),
       args.min_view,
       args.max_clips,
     )

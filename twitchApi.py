@@ -280,7 +280,7 @@ class TwitchApi:
       return (False, clip)
     
 
-  def download_clip(self, clip: dict, downloadDirectory: str, saveJson: bool) -> dict:
+  def download_clip(self, clip: dict, downloadDirectory: str, saveJson: bool, skipDownloadIfExists: bool) -> dict:
     def streamlink_method(commands: list):
       try:
         completed_process = subprocess.run(
@@ -318,39 +318,50 @@ class TwitchApi:
     clip['download_status'] = 2
     clip['download_path'] = os.path.realpath(clip_path)
     
-    success = False 
-    
-    proxy_option = [] if self.proxy == None else ["--http-proxy", self.proxy]
-    commands = [sys.executable, "-m", "streamlink", "-o", clip_path, "--force"] + proxy_option + [clip["url"], "best"]
-    for _ in range(2):
-      success = streamlink_method(commands)
-      if success: 
-        break 
-      time.sleep(2) 
-    
-    if not success:
-      print(f"\n[{datetime.now()}] Use request method for {clip['created_at']}-{clip['url']}", flush=True)
+    if not ((skipDownloadIfExists == True) and (os.path.exists(clip_path))): 
+      success = False 
+      
+      proxy_option = [] if self.proxy == None else ["--http-proxy", self.proxy]
+      commands = [sys.executable, "-m", "streamlink", "-o", clip_path, "--force"] + proxy_option + [clip["url"], "best"]
       for _ in range(2):
-        success = request_method(clip['vod_url'], clip_path, self.proxies)
+        success = streamlink_method(commands)
         if success: 
           break 
-        time.sleep(2)
-    
-    if not success:
-      print(f"\n[{datetime.now()}] Failed to download {clip['created_at']}-{clip['url']}", flush=True)
-      return clip 
+        time.sleep(2) 
+      
+      if not success:
+        print(f"\n[{datetime.now()}] Use request method for {clip['created_at']}-{clip['url']}", flush=True)
+        for _ in range(2):
+          success = request_method(clip['vod_url'], clip_path, self.proxies)
+          if success: 
+            break 
+          time.sleep(2)
+      
+      if not success:
+        print(f"\n[{datetime.now()}] Failed to download {clip['created_at']}-{clip['url']}", flush=True)
+        return clip 
 
     if saveJson == True:
-      self.save_json(clip, f'{filename}.json')
+      if not ((skipDownloadIfExists == True) and (os.path.exists(f'{filename}.json'))): 
+        self.save_json(clip, f'{filename}.json')
 
     # set as downloaded
     clip['download_status'] = 1
     return clip
 
 
-  def download_clips_from_database(self, downloadDirectory: str, concurrency: int, saveJson: bool, forceDownload: bool, minView: int, maxClips: int):
+  def download_clips_from_database(
+    self, 
+    downloadDirectory: str, 
+    concurrency: int, 
+    saveJson: bool, 
+    forceDownload: bool, 
+    skipDownloadIfExists: bool, 
+    minView: int, 
+    maxClips: int
+  ):
     def clip_handler(clip):
-      return self.download_clip(clip, downloadDirectory, saveJson)
+      return self.download_clip(clip, downloadDirectory, saveJson, skipDownloadIfExists)
     self.database.iterate_incomplete_rows(
       self.loginName, 
       clip_handler, 
